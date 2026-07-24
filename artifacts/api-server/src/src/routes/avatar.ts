@@ -8,8 +8,7 @@ const router = Router();
 
 const AVATAR_OPTIONS = {
   skinColors: ["#FDDBB4", "#F1C27D", "#E0AC69", "#C68642", "#8D5524", "#4A2912"],
-  hairColors: ["#090806", "#2C1503", "#71491E", "#B5651D", "#D4A853", "#F7DC6F", "#E8E8E8", "#C0C0C0", "#FF6B6B", "#9B59B6"],
-  hairStyles: ["short", "spiky", "long"],
+  hairStyles: ["corto", "largo"],
   shirtColors: ["#E74C3C", "#3498DB", "#2ECC71", "#F39C12", "#9B59B6", "#1ABC9C", "#E67E22", "#ECF0F1", "#2C3E50", "#F8C471"],
   pantColors: ["#2C3E50", "#6E2C00", "#1A5276", "#145A32", "#512E5F", "#17202A", "#7B7D7D", "#F0E6CA"],
   hatStyles: ["none", "cap", "sombrero", "straw", "cowboy", "beanie"],

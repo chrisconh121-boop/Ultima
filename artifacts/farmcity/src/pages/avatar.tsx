@@ -24,8 +24,7 @@ export default function AvatarCreator() {
   });
 
   const [skinColor, setSkinColor] = useState('#FDDBB4');
-  const [hairColor, setHairColor] = useState('#2C1503');
-  const [hairStyle, setHairStyle] = useState('short');
+  const [hairStyle, setHairStyle] = useState('corto');
   const [shirtColor, setShirtColor] = useState('#3498DB');
   const [pantsColor, setPantsColor] = useState('#2C3E50');
   const [hatStyle, setHatStyle] = useState('none');
@@ -35,7 +34,6 @@ export default function AvatarCreator() {
   useEffect(() => {
     if (existingAvatar) {
       setSkinColor(existingAvatar.skinColor);
-      setHairColor(existingAvatar.hairColor);
       setHairStyle(existingAvatar.hairStyle);
       setShirtColor(existingAvatar.shirtColor);
       setPantsColor(existingAvatar.pantsColor);
@@ -65,7 +63,7 @@ export default function AvatarCreator() {
     saveMutation.mutate({
       data: {
         skinColor,
-        hairColor,
+        hairColor: '#000000',  // color baked into sprite, stored as placeholder
         hairStyle,
         shirtColor,
         pantsColor,
@@ -146,9 +144,8 @@ export default function AvatarCreator() {
   );
 
   const HAIR_LABELS: Record<string, string> = {
-    short: 'Corto',
-    spiky: 'Peinado',
-    long: 'Largo',
+    corto: 'Corto',
+    largo: 'Largo',
   };
 
   const HAT_LABELS: Record<string, string> = {
@@ -215,7 +212,7 @@ export default function AvatarCreator() {
                 >
                   <SpriteAvatarPreview
                     skinColor={skinColor}
-                    hairColor={hairColor}
+                    hairColor="#000000"
                     hairStyle={hairStyle}
                     shirtColor={shirtColor}
                     pantsColor={pantsColor}
@@ -250,19 +247,13 @@ export default function AvatarCreator() {
                   selected={skinColor}
                   onSelect={setSkinColor}
                 />
-                <ColorSwatches
-                  label="Color de cabello"
-                  colors={options?.hairColors ?? defaultHairs}
-                  selected={hairColor}
-                  onSelect={setHairColor}
-                />
                 {/* Hair style — visual card selector using actual sprite images */}
                 <div className="mb-4">
                   <span className="font-['VT323'] text-sm text-[#7A4F1E] uppercase tracking-wider block mb-1.5">
                     Estilo de cabello
                   </span>
                   <div className="flex gap-2 flex-wrap">
-                    {(options?.hairStyles ?? ['short', 'spiky', 'long']).map((style: string) => (
+                    {(options?.hairStyles ?? ['corto', 'largo']).map((style: string) => (
                       <button
                         key={style}
                         onClick={() => setHairStyle(style)}

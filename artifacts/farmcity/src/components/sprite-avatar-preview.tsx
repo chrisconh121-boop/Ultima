@@ -119,7 +119,7 @@ export function SpriteAvatarPreview({
         return;
       }
 
-      const { skinColor, hairColor, hairStyle, shirtColor, pantsColor } = colorsRef.current;
+      const { skinColor, hairStyle, shirtColor, pantsColor } = colorsRef.current;
       const srcX = frame * SPRITE_FW;
 
       // ── Step 1: render to temp canvas (white background + sprite) ────────
@@ -131,12 +131,6 @@ export function SpriteAvatarPreview({
 
       // ── Step 2: tint body zones with multiply ────────────────────────────
       tCtx.globalCompositeOperation = 'multiply';
-
-      // Hair — crown + sideburns (base rectangle tint, always applied)
-      tCtx.fillStyle = hairColor;
-      tCtx.fillRect(s * 0.23, s * 0.15, s * 0.54, s * 0.15); // crown
-      tCtx.fillRect(s * 0.17, s * 0.17, s * 0.13, s * 0.11); // left sideburn
-      tCtx.fillRect(s * 0.70, s * 0.17, s * 0.13, s * 0.11); // right sideburn
 
       // Skin — face + hands
       tCtx.fillStyle = skinColor;
@@ -164,6 +158,17 @@ export function SpriteAvatarPreview({
       ctx.globalCompositeOperation = 'destination-in';
       ctx.drawImage(img, srcX, 0, SPRITE_FW, SPRITE_FH, 0, 0, s, s);
       ctx.globalCompositeOperation = 'source-over';
+
+      // ── Step 4: hair overlay sprite (original baked-in color, no tint) ──────
+      if (hairStyle) {
+        const hairImg = getHairPreviewImg(hairStyle);
+        if (hairImg.complete && hairImg.naturalWidth > 0) {
+          const hSize = footY / HAIR_FOOT_FRAC;
+          const hx = s / 2 - HAIR_CX_FRAC * hSize;
+          const hy = footY - HAIR_FOOT_FRAC * hSize;
+          ctx.drawImage(hairImg, hx, hy, hSize, hSize);
+        }
+      }
 
       animId = requestAnimationFrame(loop);
     }

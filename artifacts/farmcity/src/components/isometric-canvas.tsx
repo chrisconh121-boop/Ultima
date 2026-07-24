@@ -137,7 +137,7 @@ function getGrassTile(): HTMLImageElement {
 // Character center-x fraction within image: ~0.478 (x)
 const HAIR_FOOT_FRAC   = 0.69;
 const HAIR_CX_FRAC     = 0.478;
-const HAIR_STYLES_LIST = ['short', 'spiky', 'long'] as const;
+const HAIR_STYLES_LIST = ['corto', 'largo'] as const;
 
 const hairSpriteCache = new Map<string, HTMLImageElement>();
 function loadHairSprites(): void {
@@ -263,12 +263,6 @@ function drawSpriteCharacter(
     const { hair, skin, shirt, pants } = colors;
     const w = tw, h = th;
 
-    // Hair — crown + sideburns
-    tc.fillStyle = hair;
-    tc.fillRect(w * 0.23, h * 0.15, w * 0.54, h * 0.15);
-    tc.fillRect(w * 0.17, h * 0.17, w * 0.13, h * 0.11);
-    tc.fillRect(w * 0.70, h * 0.17, w * 0.13, h * 0.11);
-
     // Skin — face + hands
     tc.fillStyle = skin;
     tc.fillRect(w * 0.26, h * 0.22, w * 0.48, h * 0.30);
@@ -293,6 +287,18 @@ function drawSpriteCharacter(
     ctx.drawImage(_tintCanvas!, 0, 0, tw, th, dx, dy, dw, dh);
   } else {
     ctx.drawImage(img, srcX, srcY, SPRITE_FW, SPRITE_FH, dx, dy, dw, dh);
+  }
+
+  // Hair overlay sprite — drawn on top of the tinted body, inside the flip transform
+  if (colors?.hairStyle) {
+    const hairKey = `${colors.hairStyle}_r${state.row}`;
+    const hairImg = hairSpriteCache.get(hairKey);
+    if (hairImg?.complete && hairImg.naturalWidth > 0) {
+      const hSize = SPRITE_FOOT_Y * CHAR_SCALE / HAIR_FOOT_FRAC;
+      const hx = sx - HAIR_CX_FRAC * hSize;
+      const hy = sy - HAIR_FOOT_FRAC * hSize;
+      ctx.drawImage(hairImg, hx, hy, hSize, hSize);
+    }
   }
 
   ctx.restore();
