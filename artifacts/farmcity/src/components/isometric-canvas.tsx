@@ -263,6 +263,12 @@ function drawSpriteCharacter(
     const { hair, skin, shirt, pants } = colors;
     const w = tw, h = th;
 
+    // Hair — crown + sideburns
+    tc.fillStyle = hair;
+    tc.fillRect(w * 0.23, h * 0.15, w * 0.54, h * 0.15);
+    tc.fillRect(w * 0.17, h * 0.17, w * 0.13, h * 0.11);
+    tc.fillRect(w * 0.70, h * 0.17, w * 0.13, h * 0.11);
+
     // Skin — face + hands
     tc.fillStyle = skin;
     tc.fillRect(w * 0.26, h * 0.22, w * 0.48, h * 0.30);
@@ -289,7 +295,9 @@ function drawSpriteCharacter(
     ctx.drawImage(img, srcX, srcY, SPRITE_FW, SPRITE_FH, dx, dy, dw, dh);
   }
 
-  // Hair overlay sprite — drawn on top of the tinted body, inside the flip transform
+  // Hair overlay sprite — drawn on top of the tinted body, inside the flip transform.
+  // Use 'multiply' blend so any white background pixels in the PNG vanish
+  // (white × canvas = canvas, dark hair × canvas = dark hair).
   if (colors?.hairStyle) {
     const hairKey = `${colors.hairStyle}_r${state.row}`;
     const hairImg = hairSpriteCache.get(hairKey);
@@ -297,7 +305,9 @@ function drawSpriteCharacter(
       const hSize = SPRITE_FOOT_Y * CHAR_SCALE / HAIR_FOOT_FRAC;
       const hx = sx - HAIR_CX_FRAC * hSize;
       const hy = sy - HAIR_FOOT_FRAC * hSize;
+      ctx.globalCompositeOperation = 'multiply';
       ctx.drawImage(hairImg, hx, hy, hSize, hSize);
+      ctx.globalCompositeOperation = 'source-over';
     }
   }
 
