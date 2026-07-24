@@ -6,12 +6,25 @@ import { chatMessagesTable, playerPositionsTable, avatarsTable, playersTable } f
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 
+interface AvatarData {
+  id: number;
+  playerId: number;
+  skinColor: string;
+  hairColor: string;
+  hairStyle: string;
+  shirtColor: string;
+  pantsColor: string;
+  hatStyle: string | null;
+  accessory: string | null;
+}
+
 interface GameClient {
   ws: WebSocket;
   playerId: number;
   username: string;
   posX: number;
   posY: number;
+  avatar?: AvatarData;
 }
 
 const clients = new Map<number, GameClient>();
@@ -68,7 +81,7 @@ export function createWebSocketServer(server: import("http").Server): WebSocketS
       .where(eq(avatarsTable.playerId, playerId))
       .limit(1);
 
-    const client: GameClient = { ws, playerId, username, posX, posY };
+    const client: GameClient = { ws, playerId, username, posX, posY, avatar: avatar ?? undefined };
     clients.set(playerId, client);
 
     logger.info({ playerId, username }, "WebSocket player connected");
@@ -82,10 +95,10 @@ export function createWebSocketServer(server: import("http").Server): WebSocketS
       playerId,
     );
 
-    // Send current players list to new client
+    // Send current players list to new client (with avatars)
     const currentPlayers = Array.from(clients.values())
       .filter((c) => c.playerId !== playerId)
-      .map((c) => ({ id: c.playerId, username: c.username, posX: c.posX, posY: c.posY }));
+      .map((c) => ({ id: c.playerId, username: c.username, posX: c.posX, posY: c.posY, avatar: c.avatar }));
 
     safeSend(ws, { type: "players_update", players: currentPlayers });
 

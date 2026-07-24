@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/auth-context';
 import type { PlayerData } from '@/contexts/auth-context';
@@ -13,15 +13,11 @@ export default function Home() {
   const { login, player } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Redirect if already authenticated
-  if (player?.avatar) {
-    setLocation('/plaza');
-    return null;
-  }
-  if (player && !player.avatar) {
-    setLocation('/avatar');
-    return null;
-  }
+  // Redirect if already authenticated (must be in useEffect, not during render)
+  useEffect(() => {
+    if (player?.avatar) setLocation('/plaza');
+    else if (player) setLocation('/avatar');
+  }, [player, setLocation]);
 
   const loginMutation = useLogin({
     mutation: {

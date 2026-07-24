@@ -41,6 +41,9 @@ export default function Plaza() {
   const [chatOpen, setChatOpen] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const manualCloseRef = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   // Stable ref so handleSendChat doesn't need authPlayer as a dep
   const authPlayerRef = useRef(authPlayer);
@@ -59,92 +62,105 @@ export default function Plaza() {
     if (!token) setLocation('/');
   }, [token, setLocation]);
 
-  // WebSocket connection
+  // WebSocket connection with automatic reconnect
   useEffect(() => {
     if (!token) return;
 
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${proto}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    manualCloseRef.current = false;
 
-    ws.onopen = () => setConnected(true);
+    function connect() {
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${window.location.host}/ws?token=${encodeURIComponent(token!)}`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    ws.onclose = () => {
-      setConnected(false);
-      setRemotePlayers({});
-    };
+      ws.onopen = () => {
+        setConnected(true);
+        reconnectAttemptsRef.current = 0;
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data as string) as Record<string, unknown>;
-        const type = msg.type as string;
+      ws.onclose = () => {
+        setConnected(false);
+        setRemotePlayers({});
+        if (manualCloseRef.current) return;
+        // Exponential backoff: 2s, 4s, 8s, 16s, max 30s
+        const delay = Math.min(2000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        reconnectAttemptsRef.current += 1;
+        reconnectTimerRef.current = setTimeout(connect, delay);
+      };
 
-        switch (type) {
-          case 'players_update': {
-            const players = msg.players as WsPlayer[];
-            setRemotePlayers((prev) => {
-              const next = { ...prev };
-              for (const p of players) next[p.id] = { ...next[p.id], ...p };
-              return next;
-            });
-            break;
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data as string) as Record<string, unknown>;
+          const type = msg.type as string;
+
+          switch (type) {
+            case 'players_update': {
+              const players = msg.players as WsPlayer[];
+              setRemotePlayers((prev) => {
+                const next = { ...prev };
+                for (const p of players) next[p.id] = { ...next[p.id], ...p };
+                return next;
+              });
+              break;
+            }
+            case 'player_joined': {
+              const p = msg.player as WsPlayer;
+              setRemotePlayers((prev) => ({ ...prev, [p.id]: p }));
+              break;
+            }
+            case 'player_moved': {
+              const { playerId, posX, posY } = msg as {
+                type: string;
+                playerId: number;
+                posX: number;
+                posY: number;
+              };
+              setRemotePlayers((prev) =>
+                prev[playerId]
+                  ? { ...prev, [playerId]: { ...prev[playerId], posX, posY } }
+                  : prev,
+              );
+              setPanel((p) =>
+                p?.kind === 'player' && p.player.id === playerId
+                  ? { ...p, player: { ...p.player, posX, posY } }
+                  : p,
+              );
+              break;
+            }
+            case 'chat_message': {
+              const { username, message, createdAt } = msg as {
+                type: string;
+                username: string;
+                message: string;
+                createdAt: string;
+              };
+              setChatMessages((prev) => [...prev.slice(-49), { username, message, createdAt }]);
+              break;
+            }
+            case 'player_left': {
+              const { playerId } = msg as { type: string; playerId: number };
+              setRemotePlayers((prev) => {
+                const next = { ...prev };
+                delete next[playerId];
+                return next;
+              });
+              setPanel((p) => (p?.kind === 'player' && p.player.id === playerId ? null : p));
+              break;
+            }
           }
-          case 'player_joined': {
-            const p = msg.player as WsPlayer;
-            setRemotePlayers((prev) => ({ ...prev, [p.id]: p }));
-            break;
-          }
-          case 'player_moved': {
-            const { playerId, posX, posY } = msg as {
-              type: string;
-              playerId: number;
-              posX: number;
-              posY: number;
-            };
-            setRemotePlayers((prev) =>
-              prev[playerId]
-                ? { ...prev, [playerId]: { ...prev[playerId], posX, posY } }
-                : prev,
-            );
-            // Also update panel if this player is being viewed
-            setPanel((p) =>
-              p?.kind === 'player' && p.player.id === playerId
-                ? { ...p, player: { ...p.player, posX, posY } }
-                : p,
-            );
-            break;
-          }
-          case 'chat_message': {
-            const { username, message, createdAt } = msg as {
-              type: string;
-              username: string;
-              message: string;
-              createdAt: string;
-            };
-            setChatMessages((prev) => [...prev.slice(-49), { username, message, createdAt }]);
-            break;
-          }
-          case 'player_left': {
-            const { playerId } = msg as { type: string; playerId: number };
-            setRemotePlayers((prev) => {
-              const next = { ...prev };
-              delete next[playerId];
-              return next;
-            });
-            setPanel((p) => (p?.kind === 'player' && p.player.id === playerId ? null : p));
-            break;
-          }
+        } catch {
+          /* ignore parse errors */
         }
-      } catch {
-        /* ignore parse errors */
-      }
-    };
+      };
+    }
 
-    ws.onerror = () => setConnected(false);
+    connect();
 
     return () => {
-      ws.close();
+      manualCloseRef.current = true;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      wsRef.current?.close();
       wsRef.current = null;
     };
   }, [token]);
