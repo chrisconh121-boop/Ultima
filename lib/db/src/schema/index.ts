@@ -1,20 +1,41 @@
-// Export your models here. Add one export per file
-// export * from "./posts";
-//
-// Each model/table should ideally be split into different files.
-// Each model/table should define a Drizzle table, insert schema, and types:
-//
-//   import { pgTable, text, serial } from "drizzle-orm/pg-core";
-//   import { createInsertSchema } from "drizzle-zod";
-//   import { z } from "zod/v4";
-//
-//   export const postsTable = pgTable("posts", {
-//     id: serial("id").primaryKey(),
-//     title: text("title").notNull(),
-//   });
-//
-//   export const insertPostSchema = createInsertSchema(postsTable).omit({ id: true });
-//   export type InsertPost = z.infer<typeof insertPostSchema>;
-//   export type Post = typeof postsTable.$inferSelect;
+import { pgTable, serial, text, boolean, timestamp, integer, real, primaryKey } from "drizzle-orm/pg-core";
 
-export {}
+export const playersTable = pgTable("players", {
+  id: serial("id").primaryKey(),
+  username: text("username").unique().notNull(),
+  passwordHash: text("password_hash").notNull(),
+  isOnline: boolean("is_online").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const avatarsTable = pgTable("avatars", {
+  id: serial("id").primaryKey(),
+  playerId: integer("player_id")
+    .references(() => playersTable.id)
+    .notNull()
+    .unique(),
+  skinColor: text("skin_color").notNull(),
+  hairColor: text("hair_color").notNull(),
+  hairStyle: text("hair_style").notNull(),
+  shirtColor: text("shirt_color").notNull(),
+  pantsColor: text("pants_color").notNull(),
+  hatStyle: text("hat_style"),
+  accessory: text("accessory"),
+});
+
+export const playerPositionsTable = pgTable("player_positions", {
+  playerId: integer("player_id")
+    .primaryKey()
+    .references(() => playersTable.id),
+  posX: real("pos_x").default(5).notNull(),
+  posY: real("pos_y").default(5).notNull(),
+});
+
+export const chatMessagesTable = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  playerId: integer("player_id")
+    .references(() => playersTable.id)
+    .notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

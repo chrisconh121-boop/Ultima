@@ -1,0 +1,5 @@
+- [FarmCity auth token getter](farmcity-auth-token.md) — setAuthTokenGetter must read localStorage directly, never close over React state (race condition fix)
+- [FarmCity isometric canvas](farmcity-isometric-canvas.md) — all-refs architecture; A* with OBSTACLES set; screenToIso with camera-offset correction
+- [FarmCity sprite system](farmcity-sprite-system.md) — 460×460 frames, 5 direction rows, CHAR_SCALE=0.25, TILE_W=80/TILE_H=40 (1.25× zoom), sit↔getup state machine, flip-around-center trick
+- [FarmCity stack](farmcity-stack.md) — monorepo structure, key deps, DB schema tables, WebSocket protocol summary
+- [FarmCity hair sprites](farmcity-hair-sprites.md) — 3 styles (short/spiky/long), 5 directional frames each, 1024×1024 PNG in public/hair/<style>_r<row>.png; avatar creator cards only (not in-game overlay)
